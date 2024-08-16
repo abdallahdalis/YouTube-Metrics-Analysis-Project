@@ -17,7 +17,7 @@ This project provides a comprehensive analysis of YouTube metrics for BuzzFeedâ€
 
 3. **Tableau Dashboard**:
    - Provides visual insights into YouTube metrics. Includes interactive charts and graphs to explore the relationship between metrics.
-   - **Tableau Dashboard Link:** [BuzzFeed YouTube Metrics Dashboard](https://your-tableau-link-here)
+   - **Tableau Dashboard Link:** [BuzzFeed YouTube Metrics Dashboard](https://github.com/user-attachments/files/16631566/YT-Analysis.pdf)
 
 ## Analysis Overview
 
@@ -36,8 +36,6 @@ Dimensions are characteristics or attributes of the data that provide context to
 - **Time**: Date published and time of day.
 - **Video Characteristics**: Title, description, tags, and category.
 - **Audience Interaction**: Likes, comments, shares.
-
-[YT-Analysis.pdf](https://github.com/user-attachments/files/16631543/YT-Analysis.pdf)
 
 ### Data Calculation and Visualization
 

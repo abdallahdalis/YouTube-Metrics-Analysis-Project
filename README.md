@@ -1,11 +1,17 @@
 # YouTube Metrics Analysis Project
 
-<img width="685" alt="tableau-dashboard" src="https://github.com/user-attachments/assets/00d0fbb1-f1a7-40de-a0cb-801465045c3f">
+<div align="center">
+  <!-- Center the top image -->
+  <img width="685" alt="tableau-dashboard" src="https://github.com/user-attachments/assets/00d0fbb1-f1a7-40de-a0cb-801465045c3f">
+</div>
 
+<br>
 
-
-![images-2](https://github.com/user-attachments/assets/ffa57701-17b0-48d4-a6aa-e4368110e666)
-![images](https://github.com/user-attachments/assets/060f91ac-340f-4442-adcc-312b0f5734c0)
+<div align="center">
+  <!-- Display the two images side by side -->
+  <img src="https://github.com/user-attachments/assets/ffa57701-17b0-48d4-a6aa-e4368110e666" alt="images-2" style="display:inline-block; margin-right: 10px; width:45%;">
+  <img src="https://github.com/user-attachments/assets/060f91ac-340f-4442-adcc-312b0f5734c0" alt="images" style="display:inline-block; width:45%;">
+</div>
 
 This project provides a comprehensive analysis of YouTube metrics for BuzzFeed’s channels, focusing on extracting, analyzing, and visualizing key performance indicators. The goal is to understand both the popularity and engagement of YouTube content by defining and exploring North Star metrics and their relationships.
 

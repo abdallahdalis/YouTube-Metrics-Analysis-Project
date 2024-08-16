@@ -1,5 +1,9 @@
 # YouTube Metrics Analysis Project
 
+<img width="685" alt="tableau-dashboard" src="https://github.com/user-attachments/assets/00d0fbb1-f1a7-40de-a0cb-801465045c3f">
+
+
+
 ![images-2](https://github.com/user-attachments/assets/ffa57701-17b0-48d4-a6aa-e4368110e666)
 ![images](https://github.com/user-attachments/assets/060f91ac-340f-4442-adcc-312b0f5734c0)
 

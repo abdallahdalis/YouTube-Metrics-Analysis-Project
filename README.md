@@ -1,4 +1,4 @@
-# YouTube Metrics Analysis Project
+# BuzzFeed YouTube Metrics Analysis
 
 <div align="center">
   <!-- Center the top image -->

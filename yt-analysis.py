@@ -1,80 +1,109 @@
-import os
-import pandas as pd
-from googleapiclient.discovery import build
-from dotenv import load_dotenv
+"""Extract YouTube video metrics for one or more channels via the Data API v3.
 
-# Load environment variables from .env file
+Reads channel IDs and an API key from environment variables (.env), pulls every
+video for each channel (paginated), fetches details in batches of 50, and saves
+the result to an Excel file.
+
+    python yt-analysis.py
+"""
+import os
+import re
+
+import pandas as pd
+from dotenv import load_dotenv
+from googleapiclient.discovery import build
+
 load_dotenv()
 
-# Get API key from environment variables
-API_KEY = os.getenv('YOUTUBE_API_KEY')
+API_KEY = os.getenv("YOUTUBE_API_KEY")
+if not API_KEY:
+    raise SystemExit("YOUTUBE_API_KEY not set — copy .env.example to .env and fill it in.")
 
-# Dictionary to hold channel names and their corresponding environment variable names
-channel_dict = {'BuzzFeedVideo': os.getenv('BUZZFEED_VIDEO_CHANNEL_ID'),}
+# Map a friendly channel name to its channel-ID env var.
+channel_dict = {
+    "BuzzFeedVideo": os.getenv("BUZZFEED_VIDEO_CHANNEL_ID"),
+}
 
-# Create a YouTube service object
-youtube = build('youtube', 'v3', developerKey=API_KEY)
+OUTPUT_XLSX = "buzzfeed_youtube_metrics.xlsx"
 
-# Function to get videos from a channel
+youtube = build("youtube", "v3", developerKey=API_KEY)
+
+
+def parse_duration_seconds(iso: str) -> int:
+    """Convert an ISO-8601 duration (e.g. 'PT1M45S') to total seconds."""
+    m = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso or "")
+    if not m:
+        return 0
+    h, mn, s = (int(x) if x else 0 for x in m.groups())
+    return h * 3600 + mn * 60 + s
+
+
 def get_channel_videos(channel_id):
-    videos = []
-    request = youtube.search().list(
-        part='snippet',
-        channelId=channel_id,
-        maxResults=50,
-        type='video'
-    )
-    response = request.execute()
+    """Return all video IDs for a channel, following pagination."""
+    video_ids, page_token = [], None
+    while True:
+        resp = youtube.search().list(
+            part="id", channelId=channel_id, maxResults=50,
+            type="video", pageToken=page_token,
+        ).execute()
+        video_ids += [it["id"]["videoId"] for it in resp.get("items", [])]
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            return video_ids
 
-    for item in response['items']:
-        video_id = item['id']['videoId']
-        videos.append(video_id)
 
-    return videos
+def chunks(seq, n):
+    for i in range(0, len(seq), n):
+        yield seq[i:i + n]
 
-# Function to get video details
+
 def get_video_details(video_ids):
-    video_details = []
-    for video_id in video_ids:
-        request = youtube.videos().list(
-            part='snippet,contentDetails,statistics,status',
-            id=video_id
-        )
-        response = request.execute()
+    """Fetch details for many videos, batching 50 IDs per API call."""
+    details = []
+    for batch in chunks(video_ids, 50):  # API allows up to 50 ids per request
+        resp = youtube.videos().list(
+            part="snippet,contentDetails,statistics,status",
+            id=",".join(batch),
+        ).execute()
+        for item in resp.get("items", []):
+            sn, st = item["snippet"], item.get("statistics", {})
+            details.append({
+                "Video ID": item["id"],
+                "Channel ID": sn["channelId"],
+                "Title": sn["title"],
+                "Tags": ", ".join(sn.get("tags", [])),
+                "Description": sn["description"],
+                "Privacy": item.get("status", {}).get("privacyStatus", "N/A"),
+                "Date Published": sn["publishedAt"],
+                "Category ID": sn.get("categoryId", ""),
+                "Thumbnail": sn["thumbnails"]["high"]["url"],
+                "Watch URL": f"https://www.youtube.com/watch?v={item['id']}",
+                "View Count": int(st.get("viewCount", 0)),
+                "Comment Count": int(st.get("commentCount", 0)),
+                "Like Count": int(st.get("likeCount", 0)),
+                # Note: YouTube removed public dislike counts in 2021 (omitted).
+                "Length (seconds)": parse_duration_seconds(item["contentDetails"]["duration"]),
+            })
+    return details
 
-        for item in response['items']:
-            video_info = {
-                'Video ID': item['id'],
-                'Channel ID': item['snippet']['channelId'],
-                'Title': item['snippet']['title'],
-                'Tags': ', '.join(item['snippet'].get('tags', [])),
-                'Description': item['snippet']['description'],
-                'Privacy': item.get('status', {}).get('privacyStatus', 'N/A'),
-                'Date Published': item['snippet']['publishedAt'],
-                'Category ID': item['snippet']['categoryId'],
-                'Thumbnail': item['snippet']['thumbnails']['high']['url'],
-                'Watch URL': f"https://www.youtube.com/watch?v={item['id']}",
-                'File Name': f"{item['id']}.mp4",
-                'Date Backed': '',
-                'View Count': item['statistics'].get('viewCount', 0),
-                'Comment Count': item['statistics'].get('commentCount', 0),
-                'Like Count': item['statistics'].get('likeCount', 0),
-                'Dislike Count': item['statistics'].get('dislikeCount', 0),
-                'Length (seconds)': item['contentDetails']['duration']
-            }
-            video_details.append(video_info)
-    
-    return video_details
 
-# Get videos from channels and their details
-all_videos = []
-for channel_name, channel_id in channel_dict.items():
-    video_ids = get_channel_videos(channel_id)
-    video_details = get_video_details(video_ids)
-    all_videos.extend(video_details)
+def main():
+    all_videos = []
+    for name, channel_id in channel_dict.items():
+        if not channel_id:
+            print(f"Skipping {name}: channel ID not set in environment.")
+            continue
+        ids = get_channel_videos(channel_id)
+        print(f"{name}: {len(ids)} videos found")
+        all_videos.extend(get_video_details(ids))
 
-# Convert to DataFrame and save to Excel
-df = pd.DataFrame(all_videos)
-df.to_excel('buzzfeed_youtube_metrics.xlsx', index=False)
+    if not all_videos:
+        raise SystemExit("No videos retrieved — check channel IDs and API key.")
 
-print('Data has been saved to buzzfeed_youtube_metrics.xlsx')
+    df = pd.DataFrame(all_videos)
+    df.to_excel(OUTPUT_XLSX, index=False)
+    print(f"Saved {len(df)} rows to {OUTPUT_XLSX}")
+
+
+if __name__ == "__main__":
+    main()
